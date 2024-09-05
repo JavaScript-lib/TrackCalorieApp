@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
-    // Parent Class / Contstructor Is Used As Initializer
-    //////////////////////////////////////////////////////////////////////
+// Parent Class / Contstructor Is Used As Initializer
+//////////////////////////////////////////////////////////////////////
 class CalorieTracker {
     constructor() {
         this._calorieLimit = 3000;
@@ -20,14 +20,33 @@ class CalorieTracker {
     addMeal(meal) {
         this._meals.push(meal);
         this._totalCalories += meal.calories;
+        this._displayNewMeal(meal);
         this._render();
     }
     addWorkout(workout) {
         this._workouts.push(workout);
         this._totalCalories -= workout.calories;
+        this._displayNewWorkout(workout);
         this._render();
     }
-
+    removeMeal(id) {
+        const index = this._meals.findIndex((meal) => meal.id === id);
+        if(index !== -1) {
+            const meal = this._meals[index];
+            this._totalCalories -= meal.calories;
+            this._meals.splice(index, 1);
+            this._render();
+        }
+    }
+    removeWorkout(id) {
+        const index = this._workouts.findIndex((workout) => workout.id === id);
+        if(index !== -1) {
+            const workout = this._workouts[index];
+            this._totalCalories += workout.calories;
+            this._workouts.splice(index, 1);
+            this._render();
+        }
+    }
     //////////////////////////////////////////////////////////////////////
     // Private Methods
     //////////////////////////////////////////////////////////////////////
@@ -72,6 +91,46 @@ class CalorieTracker {
         const width = Math.min(percentage, 100);
         progressEl.style.width = `${width}%`;
     }
+    _displayNewMeal(meal) {
+        const mealsEl = document.getElementById('meal-items');
+        const mealEl = document.createElement('div');
+        mealEl.classList.add('card', 'my-2');
+        mealEl.setAttribute('data-id', meal.id);
+        mealEl.innerHTML = `
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                  <h4 class="mx-1">${meal.name}</h4>
+                  <div class="fs-1 bg-primary text-white text-center rounded-2 px-2 px-sm-5">
+                    ${meal.calories}
+                  </div>
+                  <button class="delete btn btn-danger btn-sm mx-2">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              </div>
+        `;
+        mealsEl.appendChild(mealEl);
+    }
+    _displayNewWorkout(workout) {
+        const workoutsEl = document.getElementById('workout-items');
+        const workoutEl = document.createElement('div');
+        workoutEl.classList.add('card', 'my-2');
+        workoutEl.setAttribute('data-id', workout.id);
+        workoutEl.innerHTML = `
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                  <h4 class="mx-1">${workout.name}</h4>
+                  <div class="fs-1 bg-primary text-white text-center rounded-2 px-2 px-sm-5">
+                    ${workout.calories}
+                  </div>
+                  <button class="delete btn btn-danger btn-sm mx-2">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              </div>
+        `;
+        workoutsEl.appendChild(workoutEl);
+    }
     _render() {
         this._displayCalorieTotal();
         this._displayCaloriesConsumed();
@@ -80,7 +139,9 @@ class CalorieTracker {
         this._displayCaloriesProgress();
     }
 }
-
+//////////////////////////////////////////////////////////////////////
+// Meal Class / One Of Two Entities In App
+//////////////////////////////////////////////////////////////////////
 class Meal {
     constructor(name, calories) {
         this.id = Math.random().toString(16).slice(2);
@@ -88,6 +149,9 @@ class Meal {
         this.calories = calories;
     }
 }
+//////////////////////////////////////////////////////////////////////
+// Workout Class / One Of Two Entities In App
+//////////////////////////////////////////////////////////////////////
 class Workout {
     constructor(name, calories) {
         this.id = Math.random().toString(16).slice(2);
@@ -97,18 +161,18 @@ class Workout {
 }
 
 //////////////////////////////////////////////////////////////////////
-    // App Class / Makes A New Instance
-    //////////////////////////////////////////////////////////////////////
+// App Class / Makes A New Instance / Main Class
+//////////////////////////////////////////////////////////////////////
 class App {
     constructor() {
         this._tracker = new CalorieTracker();
         document.getElementById('meal-form').addEventListener('submit', this._newItem.bind(this, 'meal'));
         document.getElementById('workout-form').addEventListener('submit', this._newItem.bind(this, 'workout'));
+        document.getElementById('meal-items').addEventListener('click', this._removeItem.bind(this, 'meal'));
+        document.getElementById('workout-items').addEventListener('click', this._removeItem.bind(this, 'workout'));
+        document.getElementById('filter-meals').addEventListener('keyup', this._filterItems.bind(this, 'meal'));
+        document.getElementById('filter-workouts').addEventListener('keyup', this._filterItems.bind(this, 'workout'));
     }
-    //////////////////////////////////////////////////////////////////////
-    // Public Methods
-    //////////////////////////////////////////////////////////////////////
-
     //////////////////////////////////////////////////////////////////////
     // Private Methods
     //////////////////////////////////////////////////////////////////////
@@ -138,6 +202,26 @@ class App {
         const bsCollapse = new bootstrap.Collapse(collapseItem, {
             toggle: true
         });
+    }
+    _removeItem(type, e) {
+        if(e.target.classList.contains('delete') || e.target.classList.contains('fa-xmark')) {
+            if(confirm('Are you sure you want to delete this item?')) {
+                const id = e.target.closest('.card').getAttribute('data-id');
+                type === 'meal' ? this._tracker.removeMeal(id) : this._tracker.removeWorkout(id);
+                e.target.closest('.card').remove();
+            }
+        }
+    }
+    _filterItems(type, e) {
+        const text = e.target.value.toLowerCase();
+        document.querySelectorAll(`#${type}-items .card`).forEach(item => {
+            const name = item.firstElementChild.firstElementChild.textContent;
+            if(name.toLowerCase().indexOf(text) !== -1) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        })
     }
 }
 
